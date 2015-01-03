@@ -1,4 +1,4 @@
-# Lus recipes
+# Lua recipes
 
 ## List
 
