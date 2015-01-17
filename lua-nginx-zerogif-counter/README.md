@@ -11,9 +11,9 @@ Counting visits by using empty gif.
 
 ## Usage
 
-Visits counting for two sorted sets in Redis: `host:views:today` and `host:views:total`.
+Visits counting for two sorted sets in Redis: `host:views:yyyy-mm-dd` and `host:views:total`.
 
-`host:views:today` used to aggregate views to another db and reset every day.
+`host:views:yyyy-mm-dd` used to aggregate views to another db.
 
 `host:views:total` used to long-term storing views in Redis.
 

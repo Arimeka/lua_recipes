@@ -10,18 +10,8 @@ function string:split(sep)
   return fields
 end
 
--- Get second to end of day (string fotmat: yyyy-mm-dd hh:mm:ss)
-function string:seconds_to_end_of_day()
-  local datetime = self:split(' ')
-  local time = datetime[2]:split(':')
-
-  return (86400 - tonumber(time[1])*60*60 + tonumber(time[2])*60 + tonumber(time[3]))
-end
-
 -- Write data from shared memory to Redis
 function write_to_redis(cache, host)
-  -- Flush expired keys from shared memory
-  cache:flush_expired()
   -- Blosking write to Redis
   cache:set('block', 1)
 
@@ -58,14 +48,8 @@ function write_to_redis(cache, host)
       local record = k[2]
       local views = cache:get(value)
 
-      -- Write to total views
-      if redis_key == host..':views:total' then
-        red:zincrby(redis_key, views, record)
-      -- Write to today views
-      elseif redis_key == host..':views:today' then
-        red:zincrby(redis_key, views, record)
-        red:expire(redis_key, ngx.localtime():seconds_to_end_of_day())
-      end
+      -- Write to redis key
+      red:zincrby(redis_key, views, record)
       -- Delete key after write
       cache:delete(value)
     end
@@ -84,9 +68,6 @@ function write_counter(redis_key, record, host)
   -- Record key
   local local_key = redis_key..'/'..record
 
-  -- Flush expired keys from shared memory
-  cache:flush_expired()
-
   -- Check write to redis
   locked = cache:get('block')
 
@@ -97,8 +78,8 @@ function write_counter(redis_key, record, host)
     -- Increment
     cache:incr(local_key, 1)
   else
-    -- Else, set key and set expire to end of day
-    cache:set(local_key, 1, ngx.localtime():seconds_to_end_of_day())
+    -- Else, set key
+    cache:set(local_key, 1)
   end
 
   -- If write to redis not blocked
@@ -122,7 +103,7 @@ if ngx.var.http_referer then
     -- Key for total views
     local total = host..':views:total'
     -- Key for aggreagte views
-    local today =  host..':views:today'
+    local today =  host..':views:'..ngx.today()
 
     -- Write views to shared memory
     write_counter(today, uri, host)
@@ -150,7 +131,6 @@ if ngx.var.http_referer then
 
     -- red:zincrby(total, 1, uri)
     -- red:zincrby(today, 1, uri)
-    -- red:expire(today, ngx.localtime():seconds_to_end_of_day())
   end
 
   -- Save conection pool for 10 sec
